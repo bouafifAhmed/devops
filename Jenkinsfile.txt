@@ -1,0 +1,69 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKERHUB_USER = "votre_username"
+        DOCKERHUB_REPO = "nom_image"
+        IMAGE_TAG = "latest"
+    }
+
+    triggers {
+        githubPush()   // déclenche automatiquement quand GitHub envoie un webhook
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                echo "📥 Récupération du dépôt Git"
+                checkout scm
+            }
+        }
+
+        stage('Clean & Build') {
+            steps {
+                echo "🧹 Nettoyage + Build Maven"
+                sh "mvn clean package -DskipTests"
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo "🐳 Construction de l'image Docker"
+                    sh """
+                    docker build -t ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:${IMAGE_TAG} .
+                    """
+                }
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                script {
+                    echo "🔐 Connexion à Docker Hub"
+                    sh "echo ${DOCKERHUB_PASS} | docker login -u ${DOCKERHUB_USER} --password-stdin"
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                script {
+                    echo "📤 Push de l'image Docker"
+                    sh "docker push ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:${IMAGE_TAG}"
+                }
+            }
+        }
+
+    }
+
+    post {
+        success {
+            echo "🎉 Pipeline terminée avec succès"
+        }
+        failure {
+            echo "❌ Pipeline échouée"
+        }
+    }
+}
