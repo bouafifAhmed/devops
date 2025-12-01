@@ -1,69 +1,55 @@
 pipeline {
-    agent any
+agent any
 
-    environment {
-        DOCKERHUB_USER = "votre_username"
-        DOCKERHUB_REPO = "nom_image"
-        IMAGE_TAG = "latest"
-    }
+```
+environment {
+    DOCKERHUB_USER = "bouafifahmed"
+    DOCKERHUB_REPO = "devops"
+    IMAGE_TAG = "latest"
+}
 
-    triggers {
-        githubPush()   // déclenche automatiquement quand GitHub envoie un webhook
-    }
+triggers {
+    githubPush()
+}
 
-    stages {
+stages {
 
-        stage('Checkout') {
-            steps {
-                echo "📥 Récupération du dépôt Git"
-                checkout scm
-            }
-        }
-
-        stage('Clean & Build') {
-            steps {
-                echo "🧹 Nettoyage + Build Maven"
-                sh "mvn clean package -DskipTests"
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    echo "🐳 Construction de l'image Docker"
-                    sh """
-                    docker build -t ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:${IMAGE_TAG} .
-                    """
-                }
-            }
-        }
-
-        stage('Docker Login') {
-            steps {
-                script {
-                    echo "🔐 Connexion à Docker Hub"
-                    sh "echo ${DOCKERHUB_PASS} | docker login -u ${DOCKERHUB_USER} --password-stdin"
-                }
-            }
-        }
-
-        stage('Push Image') {
-            steps {
-                script {
-                    echo "📤 Push de l'image Docker"
-                    sh "docker push ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:${IMAGE_TAG}"
-                }
-            }
-        }
-
-    }
-
-    post {
-        success {
-            echo "🎉 Pipeline terminée avec succès"
-        }
-        failure {
-            echo "❌ Pipeline échouée"
+    stage('Checkout') {
+        steps {
+            checkout scm
         }
     }
+
+    stage('Build Maven') {
+        steps {
+            sh "mvn clean package -DskipTests"
+        }
+    }
+
+    stage('Build Docker Image') {
+        steps {
+            sh "docker build -t ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:${IMAGE_TAG} ."
+        }
+    }
+
+    stage('Docker Login & Push') {
+        steps {
+            withCredentials([usernamePassword(credentialsId: 'docker-file', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                sh "echo $PASS | docker login -u $USER --password-stdin"
+                sh "docker push ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:${IMAGE_TAG}"
+            }
+        }
+    }
+}
+
+post {
+    success {
+        echo "🎉 Image envoyée avec succès sur Docker Hub : ${DOCKERHUB_USER}/${DOCKERHUB_REPO}:${IMAGE_TAG}"
+    }
+    failure {
+        echo "❌ Le pipeline a échoué"
+    }
+}
+```
+
 }
