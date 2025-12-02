@@ -1,9 +1,9 @@
 # Étape 1 : Build du projet avec Maven
-FROM maven:3.8.6-openjdk-17 AS build
+FROM maven:3.9.2-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
-COPY pom.xml .
+COPY pom.xml . 
 RUN mvn dependency:go-offline -B
 
 COPY src ./src
@@ -11,7 +11,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Étape 2 : Image finale
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-jammy
 
 WORKDIR /app
 
