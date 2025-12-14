@@ -24,6 +24,13 @@ pipeline {
                 sh "mvn clean package -DskipTests"
             }
         }
+stage('MVN SONARQUBE') {
+      steps {
+        withCredentials([string(credentialsId: 'sonartest', variable: 'SONAR_TOKEN')]) {
+          sh 'mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN'
+        }
+      }
+    }
 
         stage('Build Docker Image') {
             steps {
